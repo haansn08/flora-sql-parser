@@ -125,6 +125,59 @@ describe('select', () => {
                 }
             ]);
         });
+
+        // https://ronsavage.github.io/SQL/sql-2003-2.bnf.html#interval%20qualifier
+        // https://dev.mysql.com/worklog/task/?id=831
+        describe.only('interval', () => {
+            [
+                'MICROSECOND',
+                'SECOND',
+                'MINUTE',
+                'HOUR',
+                'DAY',
+                'WEEK',
+                'MONTH',
+                'QUARTER',
+                'YEAR'
+            ].forEach(qualifier => {
+                it(`should support ${qualifier} qualifier`, () => {
+                    ast = parser.parse(`SELECT DATE_ADD(CURDATE(), INTERVAL 10 ${qualifier})`);
+
+                    expect(ast.columns).to.deep.contain({
+                        expr: {
+                            type: 'function',
+                            name: 'DATE_ADD',
+                            args: {
+                                type: 'expr_list',
+                                value: [
+                                    {
+                                        type: 'function',
+                                        name: 'CURDATE',
+                                        args: {
+                                            type: 'expr_list',
+                                            value: []
+                                        }
+                                    },
+                                    {
+                                        expr: {
+                                            type: 'interval',
+                                            expr: '10', // TODO string expression?
+                                            unit: qualifier
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        as: null
+                    });
+                });
+            });
+
+            xit('should support foo as strings');
+            xit('should support start field TO end field');
+            xit('should support positive/negative intervals');
+            // TODO support SELECT '2018-12-31 23:59:59' + INTERVAL 1 SECOND?
+        });
     });
 
     describe('from clause', () => {
